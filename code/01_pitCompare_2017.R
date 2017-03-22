@@ -38,17 +38,14 @@ dbWriteTable(write_local, "pitscan", as.data.frame(new), append = T) # still nee
 ### PART 2 - FORMAT THE DATA FOR USE LATER ####
   
   
-# Separate out the 6 digit tag numbers from the data ------------------------
+# combine the fields into the full string of numbers used to identify a fish ------------------------
 pit$scan <- paste(pit$city, pit$tagid, sep = "")
 
-  # Import excel survey data --------------------------------------------
+# Import excel survey data --------------------------------------------
   # This would be a good place to pull data from a database instead of loading the entire excel sheet (it pulls in blank lines 1,048,575 obs)
-  library(readxl)
-  excelfile <- "../../GPSSurveys2017.xlsx"
-  excel <- read_excel(excelfile, sheet = "Clownfish", col_names=TRUE)
-  # fileList <- sort(list.files(path='output', pattern = "GPSSurvey.*"), decreasing=TRUE) # lists all extract anem output
-  # excelfile <- fileList[1] # pulls out the most recent extractanem output
-  # excel <- read.csv(paste("output/",excelfile, sep='')) # using this instead of read_excel because we need the date
+  excelfile <- "data/GPSSurveys2017.xlsx"
+  excel <- readxl::read_excel(excelfile, sheet = "clownfish", col_names=TRUE)
+  
 
   # Find the PIT tags in the excel data -----------------------------------
   # xcel <- excel[,c("TagID1","TagID2","TagID3", "TagID4", "Date", "ObsTime")]
