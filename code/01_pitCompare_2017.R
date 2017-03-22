@@ -27,6 +27,7 @@ pit <- read_csv(infile,
 exist <- local %>% 
   tbl("pitscan") 
 
+# anti_join, what is in y that is not already in x
 # what is in the new pit that is not already in the database
 new <- anti_join(exist, pit, copy = T)
   
@@ -39,7 +40,10 @@ dbWriteTable(write_local, "pitscan", as.data.frame(new), append = T) # still nee
   
   
 # combine the fields into the full string of numbers used to identify a fish ------------------------
-pit$scan <- paste(pit$city, pit$tagid, sep = "")
+# create a list of scans that are already in the database
+dbscan <- as_tibble(exist) %>% 
+  unite(scan, city, tagid, sep = "")
+
 
 # Import excel survey data --------------------------------------------
   # This would be a good place to pull data from a database instead of loading the entire excel sheet (it pulls in blank lines 1,048,575 obs)
@@ -58,7 +62,12 @@ tags <- tags %>%
   select(-divenum) # remove column
 
 # List any scanned tags that are not in the excel data ------------------
-  print(setdiff(as.character(pit$scan), as.character(xcl))) # searches for values in scan that are not in xcl
+
+anti_join(tags, pit, by = c("number"="scan"))  # what is in y that is not in x; what is in the database that is not in excel
+
+anti_join(pit, tags, by = c("scan"="number"))  # what is in y that is not in x; what is in excel that is not in the database
+
+print(setdiff(as.character(pit$scan), as.character(xcl))) # searches for values in scan that are not in xcl
   # should return numeric(0)
   # scans <- setdiff(as.numeric(pit$scan), as.numeric(xcl))
   
