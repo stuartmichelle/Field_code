@@ -3,62 +3,41 @@
 ## (for plotting in Google Earth)
 ################################################################
 
-excelfile <- "~/Downloads/GPSSurveys2017.xlsx"
-excelfile <- "../../GPSSurveys2017.xlsx"
-surv <- readxl::read_excel(excelfile, "DiveInfo", col_names = T, col_types = NULL, na = "")
+excelfile <- "data/GPSSurveys2017.xlsx"
+surv <- readxl::read_excel(excelfile, "diveinfo", col_names = T, col_types = NULL, na = "")
 
 # strip out extra rows that were added by excel
-surv <- surv[!is.na(surv$DiveNum), ]
-
-# read in survey times (start, end, pause start and pause end)
-
-dates <- surv %>% select(Date) %>% separate(Date, into = c("year", "startmonth", "startday"))
-startmonth <- dates$startmonth
-endmonth <- startmonth
-startday <- dates$startday
-endday <- startday
-year <- dates$year
-
-# strip out Excel default date from StartTime & EndTime
-surv$StartTime <- gsub('1899-12-30 ', '', surv$StartTime)
-surv$EndTime <- gsub('1899-12-30 ', '', surv$EndTime)
-surv$PauseStart <- gsub('1899-12-30 ', '', surv$PauseStart)
-surv$PauseEnd <- gsub('1899-12-30 ', '', surv$PauseEnd)
+surv <- surv %>% 
+  filter(!is.na(DiveNum)) %>% 
+  select(DiveNum, Date, StartTime, EndTime, PauseStart, PauseEnd)
 
 
-times <- surv %>% select(StartTime, EndTime) %>% separate(StartTime, into = c("starthour", "startmin"), sep = ":") %>% separate(EndTime, into = c("endhour", "endmin"), sep = ":")
-starthour <- times$starthour 
-startmin <- times$startmin
-endhour = times$endhour
-endmin = times$endmin
-
-# make all of the NA pause fields 00:00:00 so that they split into 3 values
-surv$PauseStart[is.na(surv$PauseStart)] <- "00:00:00"
-surv$PauseEnd[is.na(surv$PauseEnd)] <- "00:00:00"
-
-pausestarttime = as.character(surv$PauseStart)
-	pausestarttime[pausestarttime == ''] = '-99:-99' # to signify missing data
-pausestarttimesplit = unlist(strsplit(pausestarttime, ":", fixed=T))
-pausestarthour = as.numeric(pausestarttimesplit[seq(1,length(pausestarttimesplit), by=3)])
-	pausestarthour[pausestarthour == -99] = NA
-pausestartmin = as.numeric(pausestarttimesplit[seq(2,length(pausestarttimesplit), by=3)])
-	pausestartmin[pausestartmin == -99] = NA
-pauseendtime = as.character(surv$PauseEnd)
-	pauseendtime[pauseendtime == ''] = '-99:-99' # to signify missing data
-pauseendtimesplit = unlist(strsplit(pauseendtime, ":", fixed=T))
-pauseendhour = as.numeric(pauseendtimesplit[seq(1,length(pauseendtimesplit), by=3)])
-	pauseendhour[pauseendhour == -99] = NA
-pauseendmin = as.numeric(pauseendtimesplit[seq(2,length(pauseendtimesplit), by=3)])
-	pauseendmin[pauseendmin == -99] = NA
+# read in survey times (start, end, pause start and pause end, replace columns)
+surv <- surv %>% 
+  separate(Date, into = c("year", "startmonth", "startday")) %>%
+  separate(StartTime, into = c("bad_year","bad_month", "bad_day", "starthour", "startmin", "startsec")) %>% 
+  separate(EndTime, into = c("bad_year2","bad_month2", "bad_day2", "endhour", "endmin", "endsec")) %>%
+  separate(PauseStart, into = c("bad_year3","bad_month3", "bad_day3", "pausthour", "paustmin", "paustsec")) %>% 
+  separate(PauseEnd, into = c("bad_year4","bad_month4", "bad_day4", "pausendhour", "pausendmin", "pausendsec")) %>% 
+  select(-contains("bad"))
 
 
-	
-# Convert survey time to GMT
-starthour = starthour - 8
-i = starthour < 0; sum(i) # update if crossed midnight
-startday[i] = startday[i] - 1
-starthour[i] = starthour[i] + 24
-i = startday < 1; sum(i) # make sure no days moved to previous month
+# Convert survey time to GMT ####
+surv <- surv %>% 
+  mutate(starthour1 = as.numeric(starthour) - 8) %>% # convert from phil to gmt
+  select(-starthour) %>% 
+  mutate(startday1 = ifelse(starthour1 < 0, as.numeric(startday) - 1, startday)) %>% # if the time crossed midnight, change the day
+  select(-startday)
+
+surv <- surv %>%
+  mutate(starthour1 = ifelse(starthour1 < 0, starthour1 + 24, starthour1)) %>% # if the time crossed midnight change the hour
+  
+count(surv, as.numeric(startday1) < 1) # make sure no days moved to the previous month
+
+
+This is where I left off on 3/22/2017
+###############################################################################
+
 
 endhour = endhour - 8
 i = endhour < 0; sum(i)
