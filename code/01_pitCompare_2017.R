@@ -43,20 +43,20 @@ pit$scan <- paste(pit$city, pit$tagid, sep = "")
 
 # Import excel survey data --------------------------------------------
   # This would be a good place to pull data from a database instead of loading the entire excel sheet (it pulls in blank lines 1,048,575 obs)
-  excelfile <- "data/GPSSurveys2017.xlsx"
-  excel <- readxl::read_excel(excelfile, sheet = "clownfish", col_names=TRUE)
+excelfile <- "data/GPSSurveys2017.xlsx"
+excel <- readxl::read_excel(excelfile, sheet = "clownfish", col_names=TRUE)
   
 
-  # Find the PIT tags in the excel data -----------------------------------
-  # xcel <- excel[,c("TagID1","TagID2","TagID3", "TagID4", "Date", "ObsTime")]
-  xcel <- excel[,c("TagID1","TagID2","TagID3", "TagID4", "TagID5", "TagID6", "TagID7", "DiveNum")] # including divenum so we have one row that will always have a value
+# Find the PIT tags in the excel data -----------------------------------
 
-  # Remove NA from the excel data -----------------------------------------
-  xcel <- xcel[!is.na(xcel$DiveNum), ]
+# select all columns which are named with the word tag
+tags <- excel %>% select(contains("tag"), divenum)
+    
+# remove NAs and combine into one column of values
+tags <- tags %>% 
+  gather(tag, number, contains("tag"), na.rm = T) %>% # name the columns tag and number, put all the column names that contain tag into the tag column and their values into the number column
+  select(-divenum) # remove column
 
-# make a list of existing tagids for all of the columns in the datasheet
-  xcl <- c(xcel$TagID1[!is.na(xcel$TagID1)], xcel$TagID2[!is.na(xcel$TagID2)], xcel$TagID3[!is.na(xcel$TagID3)], xcel$TagID4[!is.na(xcel$TagID4)], xcel$TagID5[!is.na(xcel$TagID5)], xcel$TagID6[!is.na(xcel$TagID6)], xcel$TagID7[!is.na(xcel$TagID7)])
- 
 # List any scanned tags that are not in the excel data ------------------
   print(setdiff(as.character(pit$scan), as.character(xcl))) # searches for values in scan that are not in xcl
   # should return numeric(0)
