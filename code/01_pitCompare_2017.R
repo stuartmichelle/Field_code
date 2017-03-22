@@ -48,33 +48,25 @@ dbscan <- as_tibble(exist) %>%
 # Import excel survey data --------------------------------------------
   # This would be a good place to pull data from a database instead of loading the entire excel sheet (it pulls in blank lines 1,048,575 obs)
 excelfile <- "data/GPSSurveys2017.xlsx"
-excel <- readxl::read_excel(excelfile, sheet = "clownfish", col_names=TRUE)
+cols <-   c("text", "numeric", "date", "text",    "numeric",   "numeric", "numeric", "text", "numeric", "numeric",  "numeric", "numeric", "text", "numeric",  "text","text", "text",   "numeric", "numeric",  "text", 
+"text", "text",   "numeric",   "numeric",  "text",  "text", "text",   "numeric",  "numeric",  "text",  "text", "text",   "numeric",   "numeric",  "text",  "text", "text",   "numeric", "numeric",  "text",  
+"text", "text",   "numeric",   "numeric",  "text", "text", "text",   "numeric",  "numeric",  "text", "text", "text",   "numeric","numeric",  "text",  "text", "text",   "numeric",  "numeric",  "text",  "text", "text",   "numeric",   "numeric",  "text",  "text", "text",   "numeric",  "text",   "numeric",   "numeric",    "numeric",    "numeric","text")
+  
+excel <- readxl::read_excel(excelfile, sheet = "clownfish", col_names=TRUE, col_types = cols)
   
 
 # Find the PIT tags in the excel data -----------------------------------
 
 # select all columns which are named with the word tag
-tags <- excel %>% select(contains("tag"), divenum)
-    
+xltags <- excel %>% select(contains("tag"), divenum)
+
 # remove NAs and combine into one column of values
-tags <- tags %>% 
+xltags <- xltags %>% 
   gather(tag, number, contains("tag"), na.rm = T) %>% # name the columns tag and number, put all the column names that contain tag into the tag column and their values into the number column
   select(-divenum) # remove column
 
 # List any scanned tags that are not in the excel data ------------------
 
-anti_join(tags, pit, by = c("number"="scan"))  # what is in y that is not in x; what is in the database that is not in excel
+anti_join(xltags, dbscan, by = c("number" = "scan"))  # what is in y that is not in x; what is in the database scans that is not in excel
 
-anti_join(pit, tags, by = c("scan"="number"))  # what is in y that is not in x; what is in excel that is not in the database
-
-print(setdiff(as.character(pit$scan), as.character(xcl))) # searches for values in scan that are not in xcl
-  # should return numeric(0)
-  # scans <- setdiff(as.numeric(pit$scan), as.numeric(xcl))
-  
-  # List any excel tags that are not in the scanned data ------------------
-  print(setdiff(xcl, pit$scan)) #searches for values in xcl that are not in scan
-  # should return list()
-# mistype <- setdiff(xcl, pit$scan)
-  
-  
-  
+anti_join(dbscan, xltags, by = c("scan" = "number"))  # what is in y that is not in x; what is in excel that is not in the database
