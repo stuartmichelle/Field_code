@@ -1,6 +1,7 @@
-source("../../code/multigpstrim.R")
-source("../../code/multigpsuntrim.R")
-source("../../code/writeleyte.R")
+source("code/multigpstrim.R")
+source("code/multigpsuntrim.R")
+source("code/writeleyte.R")
+source("code/readGPXGarmin.R")
 
 trimmed <- multigpstrimd()
 
