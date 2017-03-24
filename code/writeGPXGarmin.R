@@ -11,18 +11,19 @@
 
 writeGPX = function(outfile, filename){
 	con = file(filename, open = 'wt')
-	cat(outfile$header, file=con) # write the same header
+	cat(header, file=con) # write the same header
 
-	# write each trkpt
-	for(i in 1:nrow(outfile$data)){
+	# add the data
+	
+	for(i in 1:nrow(outfile)){
 		cat('<trkpt lat="', file=con)
-		cat(outfile$data$lat[i], file=con)
+		cat(outfile$lat[i], file=con)
 		cat('" lon="', file=con)
-		cat(outfile$data$lon[i], file=con)
+		cat(outfile$lon[i], file=con)
 		cat('"><ele>', file=con)
-		cat(outfile$data$elev[i], file=con)
+		cat(outfile$elev[i], file=con)
 		cat('</ele><time>', file=con)
-		cat(as.character(outfile$data$time[i]), file=con)
+		cat(as.character(outfile$time[i]), file=con)
 		cat('</time></trkpt>', file=con)
 	}
 
