@@ -75,32 +75,42 @@ for(i in 1:len){ # for each file
 	  # which survey ended before the gpx and ended after the gpx started or started before the gpx ended and started after the gpx started
 		inds <- surv %>% 
 		  filter((end <= inendtime & end >= instarttime)| (start <= inendtime & start >= instarttime))
-		if(length(inds) == 0){
+		if(nrow(inds) == 0){
 			print(str_c("EVEN WORSE:", files[i], "does not cover even PART of a survey"))
 		}
 	}
 	if(nrow(inds) > 0){
-		for(j in inds){ # step through each survey that fits within this track (one or more)
+		for(j in 1:nrow(inds)){ # step through each survey that fits within this track (one or more)
 			# output all: not just if this was a dive for collecting APCL
 		  # if no pause
-		  if(is.na(surv$paust[j])){ 
+		  if(is.na(inds$paust[j])){ 
 		    # find the GPX points that fit within the survey
 				k <- data %>% 
-				  filter(time >= surv$start[j] & time <= surv$end[j]) 
-				outfile <- list(header, k)
+				  filter(time >= inds$start[j] & time <= inds$end[j])
+				k$lat <- as.character(k$lat)
+				k$lon <- as.character(k$lon)
+				outfile <- k
+			
 				
-				writeGPX(filename = paste("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], sep=""), outfile = outfile)
+				writeGPX(filename = str_c("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], sep=""), outfile = outfile)
 			}
-			if(!is.na(surv$paust[j])){ # account for a pause if need be
-				k1 = which(intimes >= surv$start[j] & intimes <= surv$paust[j]) # find the GPX points during survey and before pause
-				k2 = which(intimes >= surv$pausend[j] & intimes <= [j]) # find the GPX points after pause and during survey
-				outfile1 = list(header = infile$header, data = infile$data[k1,])
-				outfile2 = list(header = infile$header, data = infile$data[k2,])
-
-				nm = unlist(strsplit(files[i], '.gpx'))
-				writeGPX(filename = paste('data/gpx_trimmed/', surv$DiveNum[j], '_', nm, '_1.gpx', sep=''), outfile = outfile1) # write as two tracks
-				writeGPX(filename = paste('data/gpx_trimmed/', surv$DiveNum[j], '_', nm, '_2.gpx', sep=''), outfile = outfile2)
+			if(!is.na(inds$paust[j])){ # account for a pause if need be
+			  k1 <- data %>% 
+			    filter(time >= inds$start[j] & time <= inds$paust[j])
+			  k1$lat <- as.character(k1$lat)
+			  k1$lon <- as.character(k1$lon)
+			  outfile1 <- k1
+				
+			  k2 <- data %>% 
+			    filter(time >= inds$pausend[j] & time <= inds$end[j])
+			  k2$lat <- as.character(k2$lat)
+			  k2$lon <- as.character(k2$lon)
+			  outfile2 <- k2
+			
+			  writeGPX(filename = paste("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], '_1.gpx', sep=''), outfile = outfile1) # write as two tracks
+			  writeGPX(filename = paste("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], '_2.gpx', sep=''), outfile = outfile2)
 			}
 		}
 	}
 }
+
