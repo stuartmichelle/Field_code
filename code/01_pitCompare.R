@@ -48,9 +48,7 @@ dbscan <- as_tibble(exist) %>%
 # Import excel survey data --------------------------------------------
   # This would be a good place to pull data from a database instead of loading the entire excel sheet (it pulls in blank lines 1,048,575 obs)
 excelfile <- "data/GPSSurveys2017.xlsx"
-cols <-   c("text", "numeric", "date", "text",    "numeric",   "numeric", "numeric", "text", "numeric", "numeric",  "numeric", "numeric", "text", "numeric",  "text","text", "text",   "numeric", "numeric",  "text", 
-"text", "text",   "numeric",   "numeric",  "text",  "text", "text",   "numeric",  "numeric",  "text",  "text", "text",   "numeric",   "numeric",  "text",  "text", "text",   "numeric", "numeric",  "text",  
-"text", "text",   "numeric",   "numeric",  "text", "text", "text",   "numeric",  "numeric",  "text", "text", "text",   "numeric","numeric",  "text",  "text", "text",   "numeric",  "numeric",  "text",  "text", "text",   "numeric",   "numeric",  "text",  "text", "text",   "numeric",  "text",   "numeric",   "numeric",    "numeric",    "numeric","text")
+cols <- c("text", "numeric", "date", "text", "numeric", "numeric", "numeric", "text", "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text","text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric","numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "text", "numeric", "numeric", "numeric", "numeric","text")
   
 excel <- readxl::read_excel(excelfile, sheet = "clownfish", col_names=TRUE, col_types = cols)
   
