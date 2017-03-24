@@ -1,32 +1,43 @@
-source("code/multigpstrim.R")
-source("code/multigpsuntrim.R")
+source("code/multigpstrimd.R")
+source("code/multigpsuntrimd.R")
 source("code/writeleyte.R")
 source("code/readGPXGarmin.R")
 
+
+# concatenate all trimmed gpx files into one data frame
 trimmed <- multigpstrimd()
 
-write.csv(trimmed, file = "../../output/trimmed_tracks_concat_2017.csv")
+### WAIT ###
+
+write_csv(trimmed, path = "data/trimmed_tracks_concat_2017.csv")
 
 # Repeat for untrimmed tracks ---------------------------------------------
 
 untrimmed <- multigpsuntrimd()
 
-# send data to the local db
-suppressMessages(library(dplyr))
+write_csv(untrimmed, path = "data/untrimmed_tracks_concat_2017.csv")
+rm(untrimmed)
+
+# send data to the local db ------------------------------------------------
+library(tidyverse)
 library(RSQLite)
 
 # open connection to db
-local <- dbConnect(SQLite(), "../../local_leyte.sqlite3")
+local <- dbConnect(SQLite(), "data/local_leyte.sqlite3")
 
 # pull GPX table from db
 exist <- dbReadTable(local, "GPX")
+# first time: exist <- data.frame()
 
 # join the 2 tables and eliminate duplicate rows
-trimmed <- rbind(trimmed, exist)
-trimmed <- distinct(trimmed)
+trimmed <- bind_rows(trimmed, exist)
+trimmed <- distinct(trimmed) # went from 24704 to 24704
 
 # Add new pit scans to db *** note if you want to overwrite or append *****
 dbWriteTable(local, "GPX", trimmed, overwrite = T, append = F)
+
+dbDisconnect(local)
+rm(local, trimmed, exist)
 
 
 # # Send data to amphiprion database ### ONLY DO THIS ONCE !!! ###

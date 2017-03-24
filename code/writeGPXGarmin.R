@@ -23,8 +23,10 @@ writeGPX = function(outfile, filename){
 		cat('"><ele>', file=con)
 		cat(outfile$elev[i], file=con)
 		cat('</ele><time>', file=con)
-		cat(as.character(outfile$time[i]), file=con)
-		cat('</time></trkpt>', file=con)
+		cat(str_sub(outfile$time[i],1,10), file=con)
+		cat("T", file = con)
+		cat(str_sub(outfile$time[i],12,19), file=con)
+		cat('Z</time></trkpt>', file=con)
 	}
 
 	# finish up the file

@@ -65,7 +65,7 @@ for(i in 1:len){ # for each file
 	
 	# which survey started after the gpx and ended before the gpx ####
 	inds <- surv %>% 
-	  filter(start >= instarttime & end <= inendtime)
+	  filter(start >= instarttime & end <= inendtime & !is.na(DiveNum))
 	
 	# if none of the surveys fit ####
 	if(nrow(inds) == 0){
@@ -89,26 +89,32 @@ for(i in 1:len){ # for each file
 				  filter(time >= inds$start[j] & time <= inds$end[j])
 				k$lat <- as.character(k$lat)
 				k$lon <- as.character(k$lon)
+				k$elev <- as.character(k$elev)
+				k$time <- as.character(k$time)
 				outfile <- k
 			
 				
-				writeGPX(filename = str_c("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], sep=""), outfile = outfile)
+				writeGPX(filename = str_c("data/gpx_trimmed/", inds$DiveNum[j], "_", files[i], sep=""), outfile = outfile)
 			}
 			if(!is.na(inds$paust[j])){ # account for a pause if need be
 			  k1 <- data %>% 
 			    filter(time >= inds$start[j] & time <= inds$paust[j])
 			  k1$lat <- as.character(k1$lat)
 			  k1$lon <- as.character(k1$lon)
+			  k1$elev <- as.character(k1$elev)
+			  k1$time <- as.character(k1$time)
 			  outfile1 <- k1
 				
 			  k2 <- data %>% 
 			    filter(time >= inds$pausend[j] & time <= inds$end[j])
 			  k2$lat <- as.character(k2$lat)
 			  k2$lon <- as.character(k2$lon)
+			  k2$elev <- as.character(k2$elev)
+			  k2$time <- as.character(k2$time)
 			  outfile2 <- k2
 			
-			  writeGPX(filename = paste("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], '_1.gpx', sep=''), outfile = outfile1) # write as two tracks
-			  writeGPX(filename = paste("data/gpx_trimmed/", surv$DiveNum[j], "_", files[i], '_2.gpx', sep=''), outfile = outfile2)
+			  writeGPX(filename = paste("data/gpx_trimmed/", inds$DiveNum[j], "_", files[i], '_1.gpx', sep=''), outfile = outfile1) # write as two tracks
+			  writeGPX(filename = paste("data/gpx_trimmed/", inds$DiveNum[j], "_", files[i], '_2.gpx', sep=''), outfile = outfile2)
 			}
 		}
 	}
