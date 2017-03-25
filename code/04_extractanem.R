@@ -2,6 +2,7 @@
 library(tidyverse)
 library(lubridate)
 library(stringr)
+library(RSQLite)
 ######################################################
 ## Surveys and Collections: Match times to locations
 ######################################################
@@ -60,7 +61,8 @@ dat <- dat %>%
   mutate(day = day(obstime)) %>% 
   mutate(hour = hour(obstime)) %>% 
   mutate(min = minute(obstime)) %>% 
-  mutate(sec = second(obstime))
+  mutate(sec = second(obstime)) %>% 
+  mutate(year = year(obstime))
 
 latlong <- latlong %>% 
   mutate(month = month(time)) %>% 
@@ -75,7 +77,7 @@ dat <- left_join(dat, latlong, by = c("month", "day", "hour", "min"))
 # because all of the lat longs for the 4 observations are basically the same, remove sec.y and find distinct values
 dat <- dat %>% 
   select(-sec.y) %>%  # remove sec.y column
-  distinct(id, .keep_all = T) # keep all unique observance events (need that id col in the excel sheet) %>% 
+  distinct(id, .keep_all = T) %>% # keep all unique observance events (need that id col in the excel sheet) %>% 
   rename(sec = sec.x)
 
 
@@ -98,31 +100,45 @@ dat <- dat %>%
 dat %>% 
   select(divenum, obstime, anemspp, spp, numfish, sizes, lat, lon)
 
-	
-	# Write out anemone data
+# Write out anemone data
+write_csv(dat, str_c("data/GPSSurvey_anemlatlon", dat$year[1], Sys.Date(), ".csv", sep = ""))
 
-	write.csv(data, file= paste("../../output/GPSSurvey_anemlatlong_2017.csv", sep = ""))
-	
 # send data to the local db
-	suppressMessages(library(dplyr))
-	library(RSQLite)
-	
-	# open connection to db
-	local <- dbConnect(SQLite(), "../../local_leyte.sqlite3")
-	
-	# pull dive table from db
-	exist <- dbReadTable(local, "diveinfo")
-	exist$Date <- anydate(exist$Date)
-	
-	# join the 2 tables and eliminate duplicate rows
-	dive <- as.data.frame(surv)
-	# add a dive_table_id column
-	dive$dive_table_id <- 1:nrow(dive)
-	dive <- rbind(dive, exist)
-	dive <- distinct(dive)
+# open connection to db
+local <- dbConnect(SQLite(), "data/local_leyte.sqlite3")
 
-	# Add new info to db *** note if you want to overwrite or append *****
-	dbWriteTable(local, "diveinfo", dive, overwrite = T, append = F)
+# pull dive table from db
+exist <- dbReadTable(local, "diveinfo")
+# first time: exist <- data.frame()
+# have to do the math to convert dates to dates, right now in seconds I think
+
+# join the 2 tables and eliminate duplicate rows
+surv <- bind_rows(surv, exist)
+surv <- distinct(surv) # went from 58 to 58
+
+# Add new dives to db *** note if you want to overwrite or append *****
+dbWriteTable(local, "diveinfo", surv, overwrite = F, append = T)
+
+# prep the anem data
+anem <- dat %>% 
+  select(id, divenum, obstime, collector, gps, depth_m, depth_ft, anemspp, anemdia, anemid, oldanemid, anemsampleid, spp, numfish, notes)
+  
+  
+anem$anem_table_id <- 1:nrow(anem)
+
+
+
+dbDisconnect(local)
+rm(local, surv, exist)
+	
+
+#############################################################################
+
+
+
+
+
+
 	
 	#prep anem data 
 	anem <- data[ , c("id", "DiveNum", "ObsTime", "Collector", "GPS", "Depth_m", "Depth_ft", "AnemSpp", "AnemDia", "AnemID", "oldAnemID", "AnemSampleID", "Spp", "NumFish", "Notes")]
