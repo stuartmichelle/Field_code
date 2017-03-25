@@ -2,6 +2,7 @@
 # library(anytime)
 library(tidyverse)
 library(lubridate)
+library(stringr)
 ######################################################
 ## Surveys and Collections: Match times to locations
 ######################################################
