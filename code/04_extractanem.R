@@ -1,5 +1,4 @@
 # For 2017 surveys. Reads in from Excel file directly. 
-# library(anytime)
 library(tidyverse)
 library(lubridate)
 library(stringr)
@@ -21,7 +20,9 @@ names(surv) <- str_to_lower(names(surv))
 dat <- readxl::read_excel(excel_file, sheet = "clownfish", col_names = TRUE, na = "", col_types = fishcols)   
 names(dat) <- str_to_lower(names(dat))
 
-latlong <-  read_csv("data/trimmed_tracks_concat_2017.csv")
+latlong <-  read_csv("data/untrimmed_tracks_concat_2017.csv") # use untrimmed tracks - trimmed are missing some points at the ends of the dives
+
+rm(divecols, fishcols)
 
 surv1 <- surv %>% 
   select(divenum, date, site, municipality, cover)
@@ -29,21 +30,21 @@ surv1 <- surv %>%
 # join the surv1 columns to data
 dat <- dat %>% 
   left_join(surv1, by = "divenum") 
+rm(surv1)
   
 # find samples that are lacking an anemone
-lack <- dat %>% 
-  filter(is.na(anemspp) & !is.na(spp)) 
+(lack <- dat %>% 
+  filter(is.na(anemspp) & !is.na(spp)))
 # if this is zero, 
 rm(lack) # if it is not zero, look into what is going on on the data sheet
 
-# remove lines that are not anemones
+# remove lines that are not anemones and remove weird dates that excel attaches
 dat <- dat %>% 
-  filter(!is.na(anemspp))
-
-# remove the weird dates that excel attaches to times
-dat <- dat %>% 
-  separate(obstime, into = c("baddate", "obstime"), sep = " ") %>%
+  filter(!is.na(anemspp)) %>% 
+  separate(obstime, into = c("baddate", "obstime2"), sep = " ") %>%
   select(-contains("bad")) 
+
+dat <- rename(dat, obstime = obstime2)
 
 # get the date and time info for each anemone
 dat$obstime <- str_c(dat$date, dat$obstime, sep = " ")
@@ -68,60 +69,35 @@ latlong <- latlong %>%
   mutate(min = minute(time)) %>% 
   mutate(sec = second(time))
   
-# find matches for times to assign lat long
-lats <- semi_join(dat, latlong, by = c("month", "day", "hour", "min"))
+# find matches for times to assign lat long - there are more than one set of seconds (sec.y) that match
+dat <- left_join(dat, latlong, by = c("month", "day", "hour", "min"))
 
-# what didn't match # if this isn't zero, look into why
-miss <- anti_join(dat, latlong, by = c("month", "day", "hour", "min"))
-
-# currently 19, make sure this is real data and not a code error
-
-
-
+# because all of the lat longs for the 4 observations are basically the same, remove sec.y and find distinct values
+dat <- dat %>% 
+  select(-sec.y) %>%  # remove sec.y column
+  distinct(id, .keep_all = T) # keep all unique observance events (need that id col in the excel sheet) %>% 
+  rename(sec = sec.x)
 
 
+# Add the total number of fish (only for dominant spp) & # Add the size of fish (only for dominant spp)
+dat$numfish <- NA
+dat$sizes <- NA
+for (i in 1:nrow(dat)){
+  dat$numfish[i] <- sum(c(!is.na(dat$size1[i]), !is.na(dat$size2[i]), !is.na(dat$size3[i]), !is.na(dat$size4[i]), !is.na(dat$size5[i]), !is.na(dat$size6[i]), !is.na(dat$size7[i]), !is.na(dat$size8[i]), !is.na(dat$size9[i]), !is.na(dat$size10[i]), !is.na(dat$size11[i])))
+  dat$sizes[i] <- paste(dat$size1[i], dat$size2[i], dat$size3[i], dat$size4[i], dat$size5[i], dat$size6[i], dat$size7[i], dat$size8[i],dat$size9[i],dat$size10[i],dat$size11[i], collapse = ",")
+}
+# remove NA's from dat$sizes
+dat$sizes <- str_replace_all(dat$sizes, "NA", "")
 
-names <- names(data)
-data$NumFish <- NA # total number of fish (dominant species)
-data$Sizes <- NA # concatenated sizes of fish (dominant species)
-data$lat <- NA
-data$lon <- NA
+# Sort the data
 
+dat <- dat %>%
+  arrange(divenum, obstime)
 
-	
+# Examine the data
+dat %>% 
+  select(divenum, obstime, anemspp, spp, numfish, sizes, lat, lon)
 
-		
-		# Find the location records that match the date/time stamp (to nearest second)
-		latlongindex<-which(latlong$month == month & latlong$day == day & latlong$hour == hour & latlong$min == min)
-		i2<-which.min(abs(latlong$sec[latlongindex] - sec))
-		
-		# Calculate the lat/long for this time
-		if(length(i2)>0){
-			data$lat[i]<-latlong$lat[latlongindex][i2]
-			data$lon[i] <- latlong$long[latlongindex][i2]
-		}
-		
-		
-		# Add the total number of fish (only for dominant spp)
-    data$NumFish[i] <- sum(c(!is.na(data$Size1[i]), !is.na(data$Size2[i]), !is.na(data$Size3[i]), !is.na(data$Size4[i]), !is.na(data$Size5[i]), !is.na(data$Size6[i]), !is.na(data$Size7[i]), !is.na(data$Size8[i]), !is.na(data$Size9[i]), !is.na(data$Size10[i]), !is.na(data$Size11[i])))
-    
-		# Add the size of fish (only for dominant spp)
-		temp <- c(data$Size1[i], data$Size2[i], data$Size3[i], data$Size4[i], data$Size5[i], data$Size6[i], data$Size7[i], data$Size8[i],data$Size9[i],data$Size10[i],data$Size11[i])
-		temp <- temp[!is.na(temp)]
-		temp <- paste(temp, collapse=",")
-		data$Sizes[i] <- temp
-	}
-	
-	
-	# Sort the data
-	permut <- order(data$DiveNum, data$ObsTime)
-	data <- data[permut,]
-	row.names(data) <- 1:nrow(data)
-	
-	# Examine the head and tail of the data
-	head(data[,c("DiveNum", "ObsTime", "AnemSpp", "Spp", "NumFish", "Sizes", "lat", "lon")])
-	tail(data[,c("DiveNum", "ObsTime", "AnemSpp", "Spp", "NumFish", "Sizes", "lat", "lon")])
-	
 	
 	# Write out anemone data
 
