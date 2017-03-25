@@ -1,22 +1,84 @@
 # For 2017 surveys. Reads in from Excel file directly. 
-library(anytime)
+# library(anytime)
+library(tidyverse)
+library(lubridate)
 ######################################################
 ## Surveys and Collections: Match times to locations
 ######################################################
 
 ####### Add lat/long to survey data
 
-diveinfocoltypes <- c("numeric", "numeric", "date", "text", "text", "numeric", "text", "date", "date", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "numeric", "numeric", "text", "numeric", "numeric", "numeric", "text", "text")
+divecols <- c("numeric", "numeric", "date", "text", "text", "numeric", "text", "date", "date", "date", "numeric", "date", "date", "text", "numeric", "numeric", "numeric", "numeric", "text", "numeric", "numeric", "numeric", "text", "text")
 
-# clownfishcoltypes <- c("numeric", "date", "text", "numeric", "numeric", "numeric", "text", "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "text", "text", "text", "text", "text", "text", "numeric", "numeric", "numeric", "numeric", "text")
+fishcols <- c("text", "numeric", "date", "text", "numeric", "numeric", "numeric", "text", "numeric", "numeric", "numeric", "numeric", "text", "numeric", "text","text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric","numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "numeric", "text", "text", "text", "numeric", "text", "numeric", "numeric", "numeric", "numeric","text")
 
-excel_file <- ("../../GPSSurveys2017.xlsx")
+excel_file <- ("data/GPSSurveys2017.xlsx")
 
-surv <- readxl::read_excel(excel_file, sheet = "DiveInfo", col_names=TRUE, col_types = diveinfocoltypes)
+surv <- readxl::read_excel(excel_file, sheet = "diveinfo", col_names=TRUE)
+names(surv) <- str_to_lower(names(surv))
 
-data <- readxl::read_excel(excel_file, sheet = "Clownfish", col_names = TRUE, na = "")   
+dat <- readxl::read_excel(excel_file, sheet = "clownfish", col_names = TRUE, na = "", col_types = fishcols)   
+names(dat) <- str_to_lower(names(dat))
 
-latlong <-  read.csv("../../output/trimmed_tracks_concat_2017.csv", row.names=1)
+latlong <-  read_csv("data/trimmed_tracks_concat_2017.csv")
+
+surv1 <- surv %>% 
+  select(divenum, date, site, municipality, cover)
+
+# join the surv1 columns to data
+dat <- dat %>% 
+  left_join(surv1, by = "divenum") 
+  
+# find samples that are lacking an anemone
+lack <- dat %>% 
+  filter(is.na(anemspp) & !is.na(spp)) 
+# if this is zero, 
+rm(lack) # if it is not zero, look into what is going on on the data sheet
+
+# remove lines that are not anemones
+dat <- dat %>% 
+  filter(!is.na(anemspp))
+
+# remove the weird dates that excel attaches to times
+dat <- dat %>% 
+  separate(obstime, into = c("baddate", "obstime"), sep = " ") %>%
+  select(-contains("bad")) 
+
+# get the date and time info for each anemone
+dat$obstime <- str_c(dat$date, dat$obstime, sep = " ")
+dat$obstime <- ymd_hms(dat$obstime)
+dat$obstime <- force_tz(dat$obstime, tzone = "Asia/Manila")
+
+# convert to UTC
+dat$obstime <- with_tz(dat$obstime, tzone = "UTC")
+
+# split out time components to compare to latlong
+dat <- dat %>% 
+  mutate(month = month(obstime)) %>% 
+  mutate(day = day(obstime)) %>% 
+  mutate(hour = hour(obstime)) %>% 
+  mutate(min = minute(obstime)) %>% 
+  mutate(sec = second(obstime))
+
+latlong <- latlong %>% 
+  mutate(month = month(time)) %>% 
+  mutate(day = day(time)) %>% 
+  mutate(hour = hour(time)) %>% 
+  mutate(min = minute(time)) %>% 
+  mutate(sec = second(time))
+  
+# find matches for times to assign lat long
+lats <- semi_join(dat, latlong, by = c("month", "day", "hour", "min"))
+
+# what didn't match # if this isn't zero, look into why
+miss <- anti_join(dat, latlong, by = c("month", "day", "hour", "min"))
+
+# currently 19, make sure this is real data and not a code error
+
+
+
+
+
 
 names <- names(data)
 data$NumFish <- NA # total number of fish (dominant species)
@@ -24,47 +86,9 @@ data$Sizes <- NA # concatenated sizes of fish (dominant species)
 data$lat <- NA
 data$lon <- NA
 
-# add survey name
-data <- merge(data, surv[,c("DiveNum", "Date", "Name", "Municipality", "Cover")])
 
-# remove lines that weren't samples
-i <- is.na(data$AnemSpp) & !is.na(data$Spp)
-if(sum(i)>0){
-		stop("lacking anemone for a sample")
-		data[i,]
-	}
-i <- is.na(data$AnemSpp)
-sum(i)
-data <- data[!i,]
 	
-# strip out Excel default date from ObsTime, Start and EndTime
-	data$ObsTime <- gsub("1899-12-30 ", "", data$ObsTime)
-	surv$StartTime <- gsub("1899-12-30 ", "", surv$StartTime)
-	surv$EndTime <- gsub("1899-12-30 ", "", surv$EndTime)
-	
-	# process data for each anemone
-	len <- nrow(data)
-	options(warn=1) # print warnings as they occur
-	for(i in 1:len){
-	  #Get date and time information for the anemone
-		survey<-data$DiveNum[i]
-		survindex<-which(surv$DiveNum == survey)
-		date<-as.character(surv$Date[survindex])
-		datesplit<-strsplit(date,"-", fixed=T)[[1]]
-		month<-as.numeric(datesplit[2])
-		day<-as.numeric(datesplit[3])
-		time<-as.character(data$ObsTime[i])
-		timesplit<-strsplit(time, ":", fixed=T)[[1]]
-		hour<-as.numeric(timesplit[1])
-		min<-as.numeric(timesplit[2])
-		sec<-as.numeric(timesplit[3])
-		
-		# Convert time to GMT
-		hour<-hour - 8
-		if(hour <0){
-			day<-day-1
-			hour<-hour + 24
-		}
+
 		
 		# Find the location records that match the date/time stamp (to nearest second)
 		latlongindex<-which(latlong$month == month & latlong$day == day & latlong$hour == hour & latlong$min == min)
