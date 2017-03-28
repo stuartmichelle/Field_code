@@ -28,6 +28,7 @@ rm(divecols, fishcols)
 surv1 <- surv %>% 
   select(divenum, date, site, municipality, cover)
 
+
 # join the surv1 columns to data
 dat <- dat %>% 
   left_join(surv1, by = "divenum") 
@@ -74,6 +75,7 @@ latlong <- latlong %>%
 # find matches for times to assign lat long - there are more than one set of seconds (sec.y) that match
 dat <- left_join(dat, latlong, by = c("month", "day", "hour", "min"))
 
+#### HERE CAN I USE GROUP BY ID OR OBSTIME AND THEN SUMMARISE TO GET THE MEAN LAT LON OR MIN LAT LON AND CREATE A NEW TABLE WITH ALL COLUMNS BUT ONLY ONE LAT LON PER OBS
 # because all of the lat longs for the 4 observations are basically the same, remove sec.y and find distinct values
 dat <- dat %>% 
   select(-sec.y) %>%  # remove sec.y column
@@ -110,7 +112,23 @@ local <- dbConnect(SQLite(), "data/local_leyte.sqlite3")
 # pull dive table from db
 exist <- dbReadTable(local, "diveinfo")
 # first time: exist <- data.frame()
-# have to do the math to convert dates to dates, right now in seconds I think
+
+# converting surv dates/times to characters doesn't work for later re-import - set the time zones now
+# convert dates/times to seconds so they will bind with imported data from db
+exist$date <- as_datetime(exist$date)
+exist$date <- force_tz(exist$date, tzone = "Asia/Manila")
+
+exist$starttime <- as_datetime(exist$starttime)
+exist$starttime <- force_tz(exist$starttime, tzone = "Asia/Manila")
+
+exist$endtime <- as_datetime(exist$endtime)
+exist$endtime <- force_tz(exist$endtime, tzone = "Asia/Manila")
+
+exist$pausestart <- as_datetime(exist$pausestart)
+exist$pausestart <- force_tz(exist$pausestart, tzone = "Asia/Manila")
+
+####################THIS IS WHERE I LEFT OFF KEEP GOING WITH PAUSEEND ABOVE ############
+
 
 # join the 2 tables and eliminate duplicate rows
 surv <- bind_rows(surv, exist)
