@@ -3,6 +3,7 @@ multigpstrimd <- function(){
   # get all lat long data from a list of files
   source("code/readGPXGarmin.R")
   library(dplyr)
+  library(lubridate)
   # get a list of the trimmed gpx files ####
   files <- list.files(path = "data/gpx_trimmed", pattern = "*Track.*gpx")
   
