@@ -7,6 +7,8 @@ library(RSQLite)
 ## Surveys and Collections: Match times to locations
 ######################################################
 
+##### NEED TO UPDATE THIS TO READ FROM NEW ANEM DATASHEET INSTEAD OF OLD ANEM DATA ####
+
 ####### Add lat/long to survey data
 
 divecols <- c("numeric", "numeric", "date", "text", "text", "numeric", "text", "date", "date", "date", "numeric", "date", "date", "text", "numeric", "numeric", "numeric", "numeric", "text", "numeric", "numeric", "numeric", "text", "text")

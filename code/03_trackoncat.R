@@ -2,6 +2,7 @@ source("code/multigpstrimd.R")
 source("code/multigpsuntrimd.R")
 source("code/writeleyte.R")
 source("code/readGPXGarmin.R")
+library(readr)
 
 
 # concatenate all trimmed gpx files into one data frame
