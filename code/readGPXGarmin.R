@@ -11,8 +11,10 @@
 # Treats the file as only one trkseg (and may not work on files with multiple trksegs)
 
 readGPXGarmin <- function(filename){
-  infile <- read_file(filename) 
   library(stringr)
+  
+    infile <- readr::read_file(filename) 
+  
   # infile <- readLines(filename, warn=FALSE)
   lines <- strsplit(infile, split="<trkpt", fixed=TRUE)[[1]] # split into each point
   header <- lines[1]
